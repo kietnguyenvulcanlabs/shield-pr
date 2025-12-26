@@ -1,0 +1,72 @@
+[tool.poetry]
+name = "shield-pr"
+version = "0.1.0"
+description = "AI-powered code review CLI tool with LangChain and Gemini"
+authors = ["Kiet Nguyen <kietnguyen@vulcanlabs.co>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/kietnguyenvulcanlabs/shield-pr"
+repository = "https://github.com/kietnguyenvulcanlabs/shield-pr"
+keywords = ["code-review", "ai", "cli", "langchain", "gemini", "static-analysis"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Code Generators",
+]
+packages = [{include = "shield_pr"}]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<4.0"
+click = "^8.3.1"
+rich = "^14.2.0"
+langchain = "^0.1.0"
+langchain-google-genai = "^1.0.0"
+pydantic = "^2.12.5"
+pyyaml = "^6.0.3"
+tenacity = "^8.1.0"
+gitpython = "^3.1.45"
+types-requests = "^2.32.4.20250913"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^9.0.2"
+pytest-cov = "^7.0.0"
+black = "^25.12.0"
+ruff = "^0.14.10"
+mypy = "^1.19.1"
+types-pyyaml = "^6.0.12.20250915"
+pytest-asyncio = "^1.3.0"
+
+[tool.poetry.scripts]
+shield-pr = "shield_pr.cli:main"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "--cov=shield_pr --cov-report=html --cov-report=term-missing"
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_configs = true

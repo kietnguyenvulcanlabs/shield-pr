@@ -1,0 +1,39 @@
+services:
+  shield-pr:
+    build: .
+    image: shield-pr:latest
+    container_name: shield-pr
+
+    # Mount current directory as workspace
+    volumes:
+      - .:/workspace
+      - shield-pr-config:/config
+      - shield-pr-output:/output
+
+    # Environment variables
+    environment:
+      - CRA_API_KEY=${CRA_API_KEY}
+      - CRA_CONFIG_DIR=/config
+      - CRA_OUTPUT_DIR=/output
+
+    # Default command
+    command: ["--help"]
+
+  # Service for reviewing current directory
+  review:
+    extends: shield-pr
+    command: ["review", "."]
+
+  # Service for reviewing staged changes
+  review-diff:
+    extends: shield-pr
+    command: ["review-diff"]
+
+  # Service for PR review
+  review-pr:
+    extends: shield-pr
+    command: ["pr", "--branch", "main"]
+
+volumes:
+  shield-pr-config:
+  shield-pr-output:

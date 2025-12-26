@@ -1,0 +1,56 @@
+{% set name = "shield-pr" %}
+{% set version = "0.1.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/shield_pr-{{ version }}.tar.gz
+  sha256: AUTO
+
+build:
+  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv
+  number: 0
+
+requirements:
+  host:
+    - python >=3.10
+    - pip
+    - poetry-core >=2.0.0
+  run:
+    - python >=3.10
+    - click >=8.3.1
+    - rich >=14.2.0
+    - langchain >=1.2.0
+    - langchain-google-genai >=4.1.2
+    - pydantic >=2.12.5
+    - pyyaml >=6.0.3
+    - tenacity >=9.1.2
+    - gitpython >=3.1.45
+    - requests >=2.32.0
+
+test:
+  imports:
+    - shield_pr
+  commands:
+    - shield-pr version
+    - shield-pr platforms
+
+about:
+  home: https://github.com/kietnguyenvulcanlabs/shield-pr
+  summary: AI-powered code review CLI using LangChain + Gemini
+  description: |
+    ShieldPR is an AI-powered CLI tool that provides
+    intelligent code analysis using Google's Gemini API. It supports
+    platform-specific reviews for Android, iOS, AI/ML, Frontend, and
+    Backend projects with multiple output formats.
+  license: MIT
+  license_family: MIT
+  doc_url: https://github.com/kietnguyenvulcanlabs/shield-pr/blob/main/docs/installation.md
+  dev_url: https://github.com/kietnguyenvulcanlabs/shield-pr
+
+extra:
+  recipe-maintainers:
+    - kietnguyen
