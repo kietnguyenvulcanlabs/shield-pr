@@ -2,20 +2,15 @@
 # Formula documentation: https://docs.brew.sh/Formula-Cookbook
 # Installation: brew install kietnguyenvulcanlabs/tap/shield-pr
 
-class CodeReviewAssistant < Formula
+class ShieldPr < Formula
   desc "AI-powered code review CLI using LangChain + Gemini"
   homepage "https://github.com/kietnguyenvulcanlabs/shield-pr"
   url "https://github.com/kietnguyenvulcanlabs/shield-pr/archive/refs/tags/v0.1.0.tar.gz"
-  sha256 "AUTO"  # Will be calculated on release
+  sha256 "643371358ea39402bea896ad9878b671607bd4b082eb20144cd73369fc72990e"
   license "MIT"
 
   depends_on "python@3.11"
-
-  resource "requirements" do
-    # Pin specific versions for stability
-    url "https://raw.githubusercontent.com/kietnguyenvulcanlabs/shield-pr/v0.1.0/pyproject.toml"
-    sha256 "AUTO"
-  end
+  depends_on "poetry" => :build
 
   def install
     # Install via pip
@@ -24,9 +19,11 @@ class CodeReviewAssistant < Formula
     # Create virtualenv in prefix
     system python3, "-m", "venv", libexec/"venv"
 
-    # Install package
+    # Install package (poetry available via build dependency)
+    ENV.prepend_path "PATH", Formula["poetry"].opt_bin
     system libexec/"venv/bin/pip", "install", "--upgrade", "pip"
-    system libexec/"venv/bin/pip", "install", *std_pip_args(buildpath)
+    system libexec/"venv/bin/pip", "install", "poetry-core"
+    system libexec/"venv/bin/pip", "install", "--no-build-isolation", buildpath
 
     # Create wrapper script
     bin.install libexec/"venv/bin/shield-pr" => "shield-pr"
