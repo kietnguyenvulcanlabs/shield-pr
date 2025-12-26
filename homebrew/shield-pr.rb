@@ -21,9 +21,10 @@ class ShieldPr < Formula
 
     # Install package (poetry available via build dependency)
     ENV.prepend_path "PATH", Formula["poetry"].opt_bin
-    system libexec/"venv/bin/pip", "install", "--upgrade", "pip"
-    system libexec/"venv/bin/pip", "install", "poetry-core"
-    system libexec/"venv/bin/pip", "install", "--no-build-isolation", buildpath
+    pip_path = libexec/"venv/bin/pip"
+    system pip_path.to_s, "install", "--upgrade", "pip"
+    system pip_path.to_s, "install", "poetry-core"
+    system pip_path.to_s, "install", "--no-build-isolation", buildpath.to_s
 
     # Create wrapper script
     bin.install libexec/"venv/bin/shield-pr" => "shield-pr"
