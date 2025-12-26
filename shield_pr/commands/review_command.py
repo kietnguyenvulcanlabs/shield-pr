@@ -7,11 +7,9 @@ from typing import Optional
 
 import click
 
-from shield_pr.config.loader import load_config
 from shield_pr.formatters import get_formatter
 from shield_pr.formatters.rich_renderer import RichRenderer
-from shield_pr.models.review_result import ReviewResult
-from shield_pr.models.finding import Finding
+from shield_pr.core.review_pipeline import ReviewPipeline
 from shield_pr.utils.logger import logger
 
 
@@ -47,51 +45,52 @@ def review(
     files: tuple[str, ...],
     depth: str,
     platform: tuple[str, ...],
-    output: str | None,
+    output: Optional[str],
     format: str,
 ) -> None:
     """Review code files with AI analysis.
 
     Examples:
-        cra review src/main.py
-        cra review --platform android app/src/**/*.kt
-        cra review --depth deep --format json api/*.py
+        shield-pr review src/main.py
+        shield-pr review --platform android app/src/**/*.kt
+        shield-pr review --depth deep --format json api/*.py
     """
     cli_ctx = ctx.obj
     if not cli_ctx.config:
-        logger.error("Configuration required. Run 'cra init' first.")
+        logger.error("Configuration required. Set CRA_API_KEY or run 'shield-pr init'.")
         sys.exit(1)
 
     if not files:
         logger.error("No files specified")
         sys.exit(1)
 
-    formatter = get_formatter(format)
+    # Determine platform override
+    platform_override = platform[0] if platform else None
 
-    # TODO: Implement actual review logic with chain execution
-    mock_result = ReviewResult(
-        platform=platform[0] if platform else "backend",
-        findings=[
-            Finding(
-                severity="HIGH",
-                category="security",
-                file_path=files[0],
-                line_number=42,
-                description="Example finding - review not yet implemented",
-                suggestion="Implement chain execution to generate real findings",
-            )
-        ],
-        summary=f"Review placeholder for {len(files)} file(s)",
-        confidence=0.5,
-    )
+    try:
+        # Create pipeline and review
+        pipeline = ReviewPipeline(cli_ctx.config)
+        result = pipeline.review_files(
+            list(files),
+            platform_override=platform_override,
+            depth=depth,
+        )
 
-    output_text = formatter.format(mock_result)
+        # Format and output
+        formatter = get_formatter(format)
+        output_text = formatter.format(result)
 
-    if output:
-        with open(output, "w") as f:
-            f.write(output_text)
-        cli_ctx.console.print(f"[green]Results written to {output}[/green]")
-    elif format == "json" or not sys.stdout.isatty():
-        click.echo(output_text)
-    else:
-        RichRenderer().render(mock_result)
+        if output:
+            with open(output, "w") as f:
+                f.write(output_text)
+            cli_ctx.console.print(f"[green]Results written to {output}[/green]")
+        elif format == "json" or not sys.stdout.isatty():
+            click.echo(output_text)
+        else:
+            RichRenderer(cli_ctx.console).render(result)
+
+    except Exception as e:
+        logger.error(f"Review failed: {e}")
+        if cli_ctx.debug:
+            raise
+        sys.exit(1)

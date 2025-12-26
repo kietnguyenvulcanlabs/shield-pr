@@ -2,12 +2,18 @@
 Review diff command for staged changes.
 """
 
-import click
-from pathlib import Path
+import sys
+from typing import Optional
 
+import click
+
+from shield_pr.formatters import get_formatter
+from shield_pr.formatters.rich_renderer import RichRenderer
 from shield_pr.git.repository import GitRepository
 from shield_pr.git.filters import DiffFilter
 from shield_pr.core.errors import GitOperationError
+from shield_pr.core.review_pipeline import ReviewPipeline
+from shield_pr.utils.logger import logger
 
 
 @click.command('review-diff')
@@ -32,22 +38,55 @@ from shield_pr.core.errors import GitOperationError
     is_flag=True,
     help='Include binary files'
 )
+@click.option(
+    '--depth',
+    type=click.Choice(['quick', 'standard', 'deep']),
+    default='standard',
+    help='Review depth level'
+)
+@click.option(
+    '--platform',
+    type=click.Choice(['android', 'ios', 'ai-ml', 'frontend', 'backend']),
+    multiple=True,
+    help='Platform to review for (auto-detect if not specified)'
+)
+@click.option(
+    '--output',
+    '-o',
+    type=click.Path(),
+    help='Output file (default: stdout)'
+)
+@click.option(
+    '--format',
+    '-f',
+    type=click.Choice(['markdown', 'json', 'github', 'gitlab', 'slack']),
+    default='markdown',
+    help='Output format'
+)
 @click.pass_context
 def review_diff(
     ctx: click.Context,
     staged: bool,
-    branch: str | None,
+    branch: Optional[str],
     max_size: int,
-    include_binary: bool
+    include_binary: bool,
+    depth: str,
+    platform: tuple[str, ...],
+    output: Optional[str],
+    format: str,
 ) -> None:
     """
     Review git changes.
 
     Examples:
-        cra review-diff              # Review staged changes
-        cra review-diff --branch main  # Compare with main branch
+        shield-pr review-diff                  # Review staged changes
+        shield-pr review-diff --branch main    # Compare with main branch
+        shield-pr review-diff --depth deep     # Deep review of changes
     """
-    config = ctx.obj.config
+    cli_ctx = ctx.obj
+    if not cli_ctx.config:
+        logger.error("Configuration required. Set CRA_API_KEY or run 'shield-pr init'.")
+        sys.exit(1)
 
     try:
         repo = GitRepository()
@@ -82,13 +121,53 @@ def review_diff(
             change_type = _format_change_type(file_change.change_type)
             click.echo(f"  {change_type} {path}")
 
-        # TODO: Integrate with review pipeline
-        # This will be completed after pipeline integration
-        click.echo(f"\nReview pipeline integration pending...")
+        click.echo()
+
+        # Prepare patches for review
+        file_patches = {}
+        for path in filtered_paths:
+            file_change = files[path]
+            # Skip deleted files for content review
+            if file_change.change_type == 'D':
+                continue
+            file_patches[path] = file_change.patch
+
+        if not file_patches:
+            click.echo(click.style("No content changes to review.", fg="yellow"))
+            return
+
+        # Determine platform override
+        platform_override = platform[0] if platform else None
+
+        # Create pipeline and review
+        pipeline = ReviewPipeline(cli_ctx.config)
+        result = pipeline.review_diff(
+            file_patches,
+            platform_override=platform_override,
+            depth=depth,
+        )
+
+        # Format and output
+        formatter = get_formatter(format)
+        output_text = formatter.format(result)
+
+        if output:
+            with open(output, "w") as f:
+                f.write(output_text)
+            cli_ctx.console.print(f"[green]Results written to {output}[/green]")
+        elif format == "json" or not sys.stdout.isatty():
+            click.echo(output_text)
+        else:
+            RichRenderer(cli_ctx.console).render(result)
 
     except GitOperationError as e:
         click.echo(click.style(f"Git error: {e}", fg="red"), err=True)
         raise click.Abort()
+    except Exception as e:
+        logger.error(f"Review failed: {e}")
+        if cli_ctx.debug:
+            raise
+        sys.exit(1)
 
 
 def _format_change_type(change_type: str) -> str:

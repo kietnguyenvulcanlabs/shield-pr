@@ -33,7 +33,8 @@ class Finding(BaseModel):
     description: str = Field(
         description="Detailed description of the finding"
     )
-    suggestion: str = Field(
+    suggestion: str | None = Field(
+        default="",
         description="Suggested fix or improvement"
     )
     code_snippet: str | None = Field(
