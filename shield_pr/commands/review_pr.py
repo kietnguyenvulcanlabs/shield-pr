@@ -43,7 +43,7 @@ def review_pr(
         cra pr --branch main           # Compare current branch to main
         cra pr --url <github-url>      # Review GitHub PR via URL
     """
-    config = ctx.obj['config']
+    config = ctx.obj.config
 
     try:
         diff_filter = DiffFilter(

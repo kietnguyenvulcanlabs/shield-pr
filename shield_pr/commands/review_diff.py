@@ -47,7 +47,7 @@ def review_diff(
         cra review-diff              # Review staged changes
         cra review-diff --branch main  # Compare with main branch
     """
-    config = ctx.obj['config']
+    config = ctx.obj.config
 
     try:
         repo = GitRepository()
